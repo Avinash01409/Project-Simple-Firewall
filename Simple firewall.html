@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firewall Application</title>
+    <style>
+        @keyframes backgroundAnimation {
+            0% { background-color: #71b7e6; }
+            25% { background-color: #9b59b6; }
+            50% { background-color: #e67e22; }
+            75% { background-color: #2ecc71; }
+            100% { background-color: #71b7e6; }
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            animation: backgroundAnimation 10s infinite;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            background-color: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #555;
+        }
+
+        input {
+            width: calc(100% - 20px);
+            padding: 10px;
+            border: 2px solid #ccc;
+            border-radius: 6px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus {
+            border-color: #7f8c8d;
+            outline: none;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #3498db;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        .result {
+            margin-top: 20px;
+            font-weight: bold;
+            font-size: 18px;
+            padding: 10px;
+            border-radius: 6px;
+        }
+
+        .result.allowed {
+            color: #27ae60;
+            background-color: #eafaf1;
+        }
+
+        .result.denied {
+            color: #c0392b;
+            background-color: #fdecea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Firewall Application</h1>
+        <form id="firewallForm">
+            <div class="form-group">
+                <label for="ip">IP Address:</label>
+                <input type="text" id="ip" name="ip" required>
+            </div>
+
+            <div class="form-group">
+                <label for="port">Port:</label>
+                <input type="number" id="port" name="port" required>
+            </div>
+
+            <div class="form-group">
+                <label for="protocol">Protocol:</label>
+                <input type="text" id="protocol" name="protocol" required>
+            </div>
+
+            <button type="submit">Check Packet</button>
+        </form>
+        <div class="result" id="result"></div>
+    </div>
+
+    <script>
+        class IPFilter {
+            constructor() {
+                this.whitelist = new Set();
+                this.blacklist = new Set();
+            }
+
+            addToWhitelist(ip) {
+                this.whitelist.add(ip);
+            }
+
+            addToBlacklist(ip) {
+                this.blacklist.add(ip);
+            }
+
+            filter(packet) {
+                const ip = packet.ip;
+                if (this.blacklist.has(ip)) {
+                    return false;
+                }
+                if (this.whitelist.size > 0 && !this.whitelist.has(ip)) {
+                    return false;
+                }
+                return true;
+            }
+        }
+
+        class PortFilter {
+            constructor() {
+                this.allowedPorts = new Set();
+            }
+
+            allowPort(port) {
+                this.allowedPorts.add(port);
+            }
+
+            filter(packet) {
+                const port = packet.port;
+                if (this.allowedPorts.size > 0 && !this.allowedPorts.has(port)) {
+                    return false;
+                }
+                return true;
+            }
+        }
+
+        class ProtocolFilter {
+            constructor() {
+                this.allowedProtocols = new Set();
+            }
+
+            allowProtocol(protocol) {
+                this.allowedProtocols.add(protocol);
+            }
+
+            filter(packet) {
+                const protocol = packet.protocol;
+                if (this.allowedProtocols.size > 0 && !this.allowedProtocols.has(protocol)) {
+                    return false;
+                }
+                return true;
+            }
+        }
+
+        const ipFilter = new IPFilter();
+        ipFilter.addToWhitelist("192.168.1.1");
+        ipFilter.addToBlacklist("10.0.0.1");
+
+        const portFilter = new PortFilter();
+        portFilter.allowPort(80);
+        portFilter.allowPort(443);
+
+        const protocolFilter = new ProtocolFilter();
+        protocolFilter.allowProtocol("TCP");
+        protocolFilter.allowProtocol("UDP");
+
+        document.getElementById("firewallForm").addEventListener("submit", function(event) {
+            event.preventDefault();
+
+            const ip = document.getElementById("ip").value;
+            const port = parseInt(document.getElementById("port").value);
+            const protocol = document.getElementById("protocol").value;
+
+            const packet = {
+                ip: ip,
+                port: port,
+                protocol: protocol
+            };
+
+            const resultElement = document.getElementById("result");
+            if (ipFilter.filter(packet) && portFilter.filter(packet) && protocolFilter.filter(packet)) {
+                resultElement.textContent = "Packet allowed";
+                resultElement.className = "result allowed";
+            } else {
+                resultElement.textContent = "Packet denied";
+                resultElement.className = "result denied";
+            }
+        });
+    </script>
+</body>
+</html>
